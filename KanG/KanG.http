@@ -1,0 +1,6 @@
+@KanG_HostAddress = http://localhost:5088
+
+GET {{KanG_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

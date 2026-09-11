@@ -1,0 +1,10 @@
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1542361345-89e58247f2d5?q=80&w=1000' WHERE PlaceId = 1;
+UPDATE PlaceImages SET ImageUrl = 'https://upload.wikimedia.org/wikipedia/commons/8/86/Erawan_waterfall_tier_5.jpg' WHERE PlaceId = 2;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1534567153574-2b12153a87f0?q=80&w=1000' WHERE PlaceId = 3;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1620619572633-87ce6227b9c9?q=80&w=1000' WHERE PlaceId = 4;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1528181304800-259b08848526?q=80&w=1000' WHERE PlaceId = 5;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?q=80&w=1000' WHERE PlaceId = 6;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1000' WHERE PlaceId = 7;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=1000' WHERE PlaceId = 8;
+UPDATE PlaceImages SET ImageUrl = 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=1000' WHERE PlaceId = 9;
+UPDATE PlaceImages SET ImageUrl = 'https://upload.wikimedia.org/wikipedia/commons/8/86/Erawan_waterfall_tier_5.jpg' WHERE PlaceId = 10;
