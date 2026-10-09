@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,57 +9,48 @@ namespace KanG.Controller
     [ApiController]
     public class PlaceImagesController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลรูปภาพสถานที่
     {
-        private readonly AppDbContext _context;
+        private readonly IPlaceImageService _placeImageService;
 
-        public PlaceImagesController(AppDbContext context)
+        public PlaceImagesController(IPlaceImageService placeImageService)
         {
-            _context = context;
+            _placeImageService = placeImageService;
         }
 
-        // GET: api/PlaceImages
         [HttpGet]
         public async Task<ActionResult<IEnumerable<PlaceImage>>> GetPlaceImages()
         {
-            return await _context.PlaceImages.ToListAsync();
+            var images = await _placeImageService.GetAllPlaceImagesAsync();
+            return Ok(images);
         }
 
-        // GET: api/PlaceImages/5
         [HttpGet("{id}")]
         public async Task<ActionResult<PlaceImage>> GetPlaceImage(int id)
         {
-            var item = await _context.PlaceImages.FindAsync(id);
-
+            var item = await _placeImageService.GetPlaceImageByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
         
-        // POST: api/PlaceImages
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<PlaceImage>> PostPlaceImage(PlaceImage item)
         {
-            _context.PlaceImages.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetPlaceImage), new { id = item.Id }, item);
+            var created = await _placeImageService.CreatePlaceImageAsync(item);
+            return CreatedAtAction(nameof(GetPlaceImage), new { id = created.Id }, created);
         }
         
-        // DELETE: api/PlaceImages/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePlaceImage(int id)
         {
-            var item = await _context.PlaceImages.FindAsync(id);
-            if (item == null)
+            var success = await _placeImageService.DeletePlaceImageAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.PlaceImages.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

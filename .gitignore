@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Scratch files and APK binaries
+*.apk
+oo2core_8_win64.dll
+search.js
+*.tmp

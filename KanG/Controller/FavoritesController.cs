@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,83 +9,67 @@ namespace KanG.Controller
     [ApiController]
     public class FavoritesController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลรายการโปรด
     {
-        private readonly AppDbContext _context;
+        private readonly IFavoriteService _favoriteService;
 
-        public FavoritesController(AppDbContext context)
+        public FavoritesController(IFavoriteService favoriteService)
         {
-            _context = context;
+            _favoriteService = favoriteService;
         }
 
-        // GET: api/Favorites/User/5
         [HttpGet("User/{userId}")]
         public async Task<ActionResult<IEnumerable<Favorite>>> GetUserFavorites(int userId)
         {
-            return await _context.Favorites.Where(f => f.UserId == userId).ToListAsync();
+            var favorites = await _favoriteService.GetFavoritesByUserAsync(userId);
+            return Ok(favorites);
         }
 
-        // GET: api/Favorites
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Favorite>>> GetFavorites()
         {
-            return await _context.Favorites.ToListAsync();
+            var favorites = await _favoriteService.GetAllFavoritesAsync();
+            return Ok(favorites);
         }
 
-        // GET: api/Favorites/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Favorite>> GetFavorite(int id)
         {
-            var item = await _context.Favorites.FindAsync(id);
-
+            var item = await _favoriteService.GetFavoriteByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
         
-        // POST: api/Favorites
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Favorite>> PostFavorite(Favorite item)
         {
-            var existing = await _context.Favorites.FirstOrDefaultAsync(f => f.UserId == item.UserId && f.PlaceId == item.PlaceId);
-            if (existing != null) return existing; // Already favorited
-
-            _context.Favorites.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetFavorite), new { id = item.Id }, item);
+            var result = await _favoriteService.AddFavoriteAsync(item);
+            return CreatedAtAction(nameof(GetFavorite), new { id = result.Id }, result);
         }
         
-        // DELETE: api/Favorites/User/1/Place/2
+        [Authorize]
         [HttpDelete("User/{userId}/Place/{placeId}")]
         public async Task<IActionResult> DeleteUserFavorite(int userId, int placeId)
         {
-            var item = await _context.Favorites.FirstOrDefaultAsync(f => f.UserId == userId && f.PlaceId == placeId);
-            if (item == null)
+            var success = await _favoriteService.DeleteUserFavoriteAsync(userId, placeId);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Favorites.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
-        // DELETE: api/Favorites/5
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFavorite(int id)
         {
-            var item = await _context.Favorites.FindAsync(id);
-            if (item == null)
+            var success = await _favoriteService.DeleteFavoriteAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Favorites.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,93 +10,61 @@ namespace KanG.Controller
     [ApiController]
     public class TripPlanItemsController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลรายการในแผนทริป
     {
-        private readonly AppDbContext _context;
+        private readonly ITripPlanService _tripPlanService;
 
-        public TripPlanItemsController(AppDbContext context)
+        public TripPlanItemsController(ITripPlanService tripPlanService)
         {
-            _context = context;
+            _tripPlanService = tripPlanService;
         }
 
-        // GET: api/TripPlanItems
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TripPlanItem>>> GetTripPlanItems()
         {
-            return await _context.TripPlanItems.ToListAsync();
+            var items = await _tripPlanService.GetAllTripPlanItemsAsync();
+            return Ok(items);
         }
 
-        // GET: api/TripPlanItems/5
         [HttpGet("{id}")]
         public async Task<ActionResult<TripPlanItem>> GetTripPlanItem(int id)
         {
-            var item = await _context.TripPlanItems.FindAsync(id);
-
+            var item = await _tripPlanService.GetTripPlanItemByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
-        
-        // POST: api/TripPlanItems
+
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<TripPlanItem>> PostTripPlanItem(TripPlanItem item)
         {
-            _context.TripPlanItems.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTripPlanItem), new { id = item.Id }, item);
+            var created = await _tripPlanService.CreateTripPlanItemAsync(item);
+            return CreatedAtAction(nameof(GetTripPlanItem), new { id = created.Id }, created);
         }
-        
-        // PUT: api/TripPlanItems/5
+
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<IActionResult> PutTripPlanItem(int id, TripPlanItem item)
         {
-            if (id != item.Id)
+            var success = await _tripPlanService.UpdateTripPlanItemAsync(id, item);
+            if (!success)
             {
                 return BadRequest();
             }
-
-            _context.Entry(item).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!TripPlanItemExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
             return NoContent();
         }
 
-        // DELETE: api/TripPlanItems/5
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTripPlanItem(int id)
         {
-            var item = await _context.TripPlanItems.FindAsync(id);
-            if (item == null)
+            var success = await _tripPlanService.DeleteTripPlanItemAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.TripPlanItems.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool TripPlanItemExists(int id)
-        {
-            return _context.TripPlanItems.Any(e => e.Id == id);
         }
     }
 }

@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,57 +9,48 @@ namespace KanG.Controller
     [ApiController]
     public class LocationsController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลพิกัดตำแหน่ง
     {
-        private readonly AppDbContext _context;
+        private readonly ILocationService _locationService;
 
-        public LocationsController(AppDbContext context)
+        public LocationsController(ILocationService locationService)
         {
-            _context = context;
+            _locationService = locationService;
         }
 
-        // GET: api/Locations
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Location>>> GetLocations()
         {
-            return await _context.Locations.ToListAsync();
+            var locations = await _locationService.GetAllLocationsAsync();
+            return Ok(locations);
         }
 
-        // GET: api/Locations/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Location>> GetLocation(int id)
         {
-            var item = await _context.Locations.FindAsync(id);
-
+            var item = await _locationService.GetLocationByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
         
-        // POST: api/Locations
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Location>> PostLocation(Location item)
         {
-            _context.Locations.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetLocation), new { id = item.Id }, item);
+            var created = await _locationService.CreateLocationAsync(item);
+            return CreatedAtAction(nameof(GetLocation), new { id = created.Id }, created);
         }
         
-        // DELETE: api/Locations/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLocation(int id)
         {
-            var item = await _context.Locations.FindAsync(id);
-            if (item == null)
+            var success = await _locationService.DeleteLocationAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Locations.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

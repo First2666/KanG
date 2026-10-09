@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,44 +9,32 @@ namespace KanG.Controller
     [ApiController]
     public class CategoriesController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลหมวดหมู่สถานที่
     {
-        private readonly AppDbContext _context;
+        private readonly ICategoryService _categoryService;
 
-        public CategoriesController(AppDbContext context)
+        public CategoriesController(ICategoryService categoryService)
         {
-            _context = context;
+            _categoryService = categoryService;
         }
 
         // GET: api/Categories
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
         {
-            if (!await _context.Categories.AnyAsync())
-            {
-                _context.Categories.AddRange(
-                    new Category { Name = "ธรรมชาติ & ภูเขา" },
-                    new Category { Name = "ประวัติศาสตร์ & สงครามโลก" },
-                    new Category { Name = "น้ำตก & ผืนป่า" },
-                    new Category { Name = "คาเฟ่ & ร้านอาหารริมน้ำ" },
-                    new Category { Name = "ที่พักแพริมน้ำ & รีสอร์ท" },
-                    new Category { Name = "กิจกรรม & แอดเวนเจอร์" }
-                );
-                await _context.SaveChangesAsync();
-            }
-            return await _context.Categories.ToListAsync();
+            var categories = await _categoryService.GetAllCategoriesAsync();
+            return Ok(categories);
         }
 
         // GET: api/Categories/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Category>> GetCategory(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-
+            var category = await _categoryService.GetCategoryByIdAsync(id);
             if (category == null)
             {
                 return NotFound();
             }
-
-            return category;
+            return Ok(category);
         }
     }
 }
+

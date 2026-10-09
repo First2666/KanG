@@ -5,7 +5,7 @@ using KanG.Enums;
 
 namespace KanG.Models
 {
-    public class User // เน€เธเนเธเธเนเธญเธกเธนเธฅเธเธนเนเนเธเนเธเธฒเธ (เธเธฑเธเธ—เนเธญเธเน€เธ—เธตเนเธขเธง / Admin)
+    public class User // ผู้ใช้งาน
     {
         public int Id { get; set; } 
         public string Username { get; set; } = string.Empty; 

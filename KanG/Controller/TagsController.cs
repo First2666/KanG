@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,72 +10,54 @@ namespace KanG.Controller
     [ApiController]
     public class TagsController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลป้ายกำกับ
     {
-        private readonly AppDbContext _context;
+        private readonly ITagService _tagService;
 
-        public TagsController(AppDbContext context)
+        public TagsController(ITagService tagService)
         {
-            _context = context;
+            _tagService = tagService;
         }
 
         // GET: api/Tags
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Tag>>> GetTags()
         {
-            if (!await _context.Tags.AnyAsync())
-            {
-                _context.Tags.AddRange(
-                    new Tag { Name = "วิวสวยถ่ายรูปปัง" },
-                    new Tag { Name = "ที่จอดรถสะดวก" },
-                    new Tag { Name = "บรรยากาศดีริมน้ำ" },
-                    new Tag { Name = "เหมาะสำหรับครอบครัว" },
-                    new Tag { Name = "มีมุมกาแฟ" },
-                    new Tag { Name = "สัตว์เลี้ยงเข้าได้" },
-                    new Tag { Name = "เปิดให้บริการทุกวัน" },
-                    new Tag { Name = "มีWi-Fiฟรี" }
-                );
-                await _context.SaveChangesAsync();
-            }
-            return await _context.Tags.ToListAsync();
+            var tags = await _tagService.GetAllTagsAsync();
+            return Ok(tags);
         }
 
         // GET: api/Tags/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Tag>> GetTag(int id)
         {
-            var item = await _context.Tags.FindAsync(id);
-
+            var item = await _tagService.GetTagByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
         
         // POST: api/Tags
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Tag>> PostTag(Tag item)
         {
-            _context.Tags.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetTag), new { id = item.Id }, item);
+            var created = await _tagService.CreateTagAsync(item);
+            return CreatedAtAction(nameof(GetTag), new { id = created.Id }, created);
         }
         
         // DELETE: api/Tags/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteTag(int id)
         {
-            var item = await _context.Tags.FindAsync(id);
-            if (item == null)
+            var success = await _tagService.DeleteTagAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Tags.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }
 }
+

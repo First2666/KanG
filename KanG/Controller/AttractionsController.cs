@@ -1,7 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,42 +8,29 @@ namespace KanG.Controller
     [ApiController]
     public class AttractionsController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลสถานที่ท่องเที่ยว
     {
-        private readonly AppDbContext _context;
+        private readonly IPlaceService _placeService;
 
-        public AttractionsController(AppDbContext context)
+        public AttractionsController(IPlaceService placeService)
         {
-            _context = context;
+            _placeService = placeService;
         }
 
-        // GET: api/Attractions
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Attraction>>> GetAttractions()
         {
-            return await _context.Attractions
-                .Include(a => a.Location)
-                .Include(a => a.Images)
-                .Include(a => a.Categories)
-                    .ThenInclude(ac => ac.Category)
-                .ToListAsync();
+            var attractions = await _placeService.GetAttractionsAsync();
+            return Ok(attractions);
         }
 
-        // GET: api/Attractions/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Attraction>> GetAttraction(int id)
         {
-            var attraction = await _context.Attractions
-                .Include(a => a.Location)
-                .Include(a => a.Images)
-                .Include(a => a.Categories)
-                    .ThenInclude(ac => ac.Category)
-                .FirstOrDefaultAsync(a => a.Id == id);
-
+            var attraction = await _placeService.GetAttractionByIdAsync(id);
             if (attraction == null)
             {
                 return NotFound();
             }
-
-            return attraction;
+            return Ok(attraction);
         }
     }
 }

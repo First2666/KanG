@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,57 +10,52 @@ namespace KanG.Controller
     [ApiController]
     public class ReviewsController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลรีวิวและคะแนน
     {
-        private readonly AppDbContext _context;
+        private readonly IReviewService _reviewService;
 
-        public ReviewsController(AppDbContext context)
+        public ReviewsController(IReviewService reviewService)
         {
-            _context = context;
+            _reviewService = reviewService;
         }
 
         // GET: api/Reviews
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Review>>> GetReviews()
         {
-            return await _context.Reviews.ToListAsync();
+            var reviews = await _reviewService.GetAllReviewsAsync();
+            return Ok(reviews);
         }
 
         // GET: api/Reviews/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Review>> GetReview(int id)
         {
-            var item = await _context.Reviews.FindAsync(id);
-
+            var item = await _reviewService.GetReviewByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
         
         // POST: api/Reviews
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<Review>> PostReview(Review item)
         {
-            _context.Reviews.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetReview), new { id = item.Id }, item);
+            var created = await _reviewService.CreateReviewAsync(item);
+            return CreatedAtAction(nameof(GetReview), new { id = created.Id }, created);
         }
         
         // DELETE: api/Reviews/5
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteReview(int id)
         {
-            var item = await _context.Reviews.FindAsync(id);
-            if (item == null)
+            var success = await _reviewService.DeleteReviewAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Reviews.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

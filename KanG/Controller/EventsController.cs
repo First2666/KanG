@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using KanG.Models;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
@@ -9,57 +9,48 @@ namespace KanG.Controller
     [ApiController]
     public class EventsController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลกิจกรรมและเทศกาล
     {
-        private readonly AppDbContext _context;
+        private readonly IEventService _eventService;
 
-        public EventsController(AppDbContext context)
+        public EventsController(IEventService eventService)
         {
-            _context = context;
+            _eventService = eventService;
         }
 
-        // GET: api/Events
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
         {
-            return await _context.Events.ToListAsync();
+            var events = await _eventService.GetAllEventsAsync();
+            return Ok(events);
         }
 
-        // GET: api/Events/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Event>> GetEvent(int id)
         {
-            var item = await _context.Events.FindAsync(id);
-
+            var item = await _eventService.GetEventByIdAsync(id);
             if (item == null)
             {
                 return NotFound();
             }
-
-            return item;
+            return Ok(item);
         }
         
-        // POST: api/Events
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<Event>> PostEvent(Event item)
         {
-            _context.Events.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetEvent), new { id = item.Id }, item);
+            var created = await _eventService.CreateEventAsync(item);
+            return CreatedAtAction(nameof(GetEvent), new { id = created.Id }, created);
         }
         
-        // DELETE: api/Events/5
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(int id)
         {
-            var item = await _context.Events.FindAsync(id);
-            if (item == null)
+            var success = await _eventService.DeleteEventAsync(id);
+            if (!success)
             {
                 return NotFound();
             }
-
-            _context.Events.Remove(item);
-            await _context.SaveChangesAsync();
-
             return NoContent();
         }
     }

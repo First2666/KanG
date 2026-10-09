@@ -1,14 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using KanG.Data;
-using KanG.Models;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using System.IO;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using KanG.Services.IService;
 
 namespace KanG.Controller
 {
-    public class PlaceDto
+    public class PlaceRequest
     {
         public string PlaceType { get; set; } = "Attraction";
         public string Name { get; set; } = string.Empty;
@@ -28,208 +24,76 @@ namespace KanG.Controller
     [ApiController]
     public class PlacesController : ControllerBase // คอนโทรลเลอร์จัดการข้อมูลสถานที่ (หลัก)
     {
-        private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _env;
+        private readonly IPlaceService _placeService;
+        private readonly IPlaceImageService _placeImageService;
 
-        public PlacesController(AppDbContext context, IWebHostEnvironment env)
+        public PlacesController(IPlaceService placeService, IPlaceImageService placeImageService)
         {
-            _context = context;
-            _env = env;
+            _placeService = placeService;
+            _placeImageService = placeImageService;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<object>>> GetPlaces()
         {
-            var places = await _context.Places
-                .Include(p => p.Images)
-                .Include(p => p.Location)
-                .Include(p => p.Categories).ThenInclude(c => c.Category)
-                .Include(p => p.Tags).ThenInclude(t => t.Tag)
-                .OrderByDescending(p => p.Id)
-                .ToListAsync();
-
-            return Ok(places.Select(p => new
-            {
-                p.Id,
-                p.Name,
-                p.Description,
-                p.Latitude,
-                p.Longitude,
-                p.LocationId,
-                Location = p.Location,
-                PlaceType = p.GetType().Name,
-                EntranceFee = p is Attraction a ? a.EntranceFee : (p is Accommodation ac ? ac.PricePerNight : 0),
-                OpeningTime = p.OpeningTime,
-                ClosingTime = p.ClosingTime,
-                Images = p.Images,
-                CategoryIds = p.Categories.Select(c => c.CategoryId).ToList(),
-                CategoryNames = p.Categories.Where(c => c.Category != null).Select(c => c.Category.Name).ToList(),
-                TagIds = p.Tags.Select(t => t.TagId).ToList(),
-                TagNames = p.Tags.Where(t => t.Tag != null).Select(t => t.Tag.Name).ToList()
-            }));
+            var places = await _placeService.GetAllPlacesAsync();
+            return Ok(places);
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<object>> GetPlace(int id)
         {
-            var p = await _context.Places
-                .Include(p => p.Images)
-                .Include(p => p.Location)
-                .Include(p => p.Categories).ThenInclude(c => c.Category)
-                .Include(p => p.Tags).ThenInclude(t => t.Tag)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
-            if (p == null) return NotFound();
-
-            return Ok(new
-            {
-                p.Id,
-                p.Name,
-                p.Description,
-                p.Latitude,
-                p.Longitude,
-                p.LocationId,
-                Location = p.Location,
-                PlaceType = p.GetType().Name,
-                EntranceFee = p is Attraction a ? a.EntranceFee : (p is Accommodation ac ? ac.PricePerNight : 0),
-                OpeningTime = p.OpeningTime,
-                ClosingTime = p.ClosingTime,
-                Images = p.Images,
-                CategoryIds = p.Categories.Select(c => c.CategoryId).ToList(),
-                CategoryNames = p.Categories.Where(c => c.Category != null).Select(c => c.Category.Name).ToList(),
-                TagIds = p.Tags.Select(t => t.TagId).ToList(),
-                TagNames = p.Tags.Where(t => t.Tag != null).Select(t => t.Tag.Name).ToList()
-            });
-        }
-
-        [HttpPost]
-        public async Task<ActionResult<object>> PostPlace([FromBody] PlaceDto dto)
-        {
-            Place place;
-            if (dto.PlaceType == "Restaurant")
-            {
-                place = new Restaurant { FoodType = KanG.Enums.FoodType.Local };
-            }
-            else if (dto.PlaceType == "Accommodation")
-            {
-                place = new Accommodation { PricePerNight = dto.EntranceFee, MaxGuests = 2 };
-            }
-            else
-            {
-                place = new Attraction { EntranceFee = dto.EntranceFee };
-            }
-
-            place.Name = dto.Name;
-            place.Description = dto.Description;
-            place.Latitude = dto.Latitude;
-            place.Longitude = dto.Longitude;
-            place.LocationId = dto.LocationId;
-            place.OpeningTime = dto.OpeningTime;
-            place.ClosingTime = dto.ClosingTime;
-            place.CreatedAt = DateTime.UtcNow;
-            place.UpdatedAt = DateTime.UtcNow;
-
-            foreach (var cid in dto.CategoryIds)
-                place.Categories.Add(new PlaceCategory { CategoryId = cid });
-
-            foreach (var tid in dto.TagIds)
-                place.Tags.Add(new PlaceTag { TagId = tid });
-
-            _context.Places.Add(place);
-            await _context.SaveChangesAsync();
-
-            // Return full object to match GET schema for frontend
-            return Ok(new
-            {
-                place.Id,
-                place.Name,
-                place.Description,
-                place.Latitude,
-                place.Longitude,
-                place.LocationId,
-                PlaceType = place.GetType().Name,
-                EntranceFee = dto.EntranceFee,
-                OpeningTime = place.OpeningTime,
-                ClosingTime = place.ClosingTime,
-                Images = new List<PlaceImage>(),
-                CategoryIds = dto.CategoryIds,
-                TagIds = dto.TagIds
-            });
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutPlace(int id, [FromBody] PlaceDto dto)
-        {
-            var place = await _context.Places
-                .Include(p => p.Categories)
-                .Include(p => p.Tags)
-                .FirstOrDefaultAsync(p => p.Id == id);
-
+            var place = await _placeService.GetPlaceByIdAsync(id);
             if (place == null) return NotFound();
+            return Ok(place);
+        }
 
-            place.Name = dto.Name;
-            place.Description = dto.Description;
-            place.Latitude = dto.Latitude;
-            place.Longitude = dto.Longitude;
-            place.LocationId = dto.LocationId;
-            place.OpeningTime = dto.OpeningTime;
-            place.ClosingTime = dto.ClosingTime;
-            place.UpdatedAt = DateTime.UtcNow;
+        [Authorize(Roles = "Admin")]
+        [HttpPost]
+        public async Task<ActionResult<object>> PostPlace([FromBody] PlaceRequest request)
+        {
+            var result = await _placeService.CreatePlaceAsync(request);
+            return Ok(result);
+        }
 
-            if (place is Attraction a) a.EntranceFee = dto.EntranceFee;
-            if (place is Accommodation ac) ac.PricePerNight = dto.EntranceFee;
-
-            // Update Categories
-            _context.PlaceCategories.RemoveRange(place.Categories);
-            foreach (var cid in dto.CategoryIds)
-                place.Categories.Add(new PlaceCategory { CategoryId = cid, PlaceId = place.Id });
-
-            // Update Tags
-            _context.PlaceTags.RemoveRange(place.Tags);
-            foreach (var tid in dto.TagIds)
-                place.Tags.Add(new PlaceTag { TagId = tid, PlaceId = place.Id });
-
-            await _context.SaveChangesAsync();
+        [Authorize(Roles = "Admin")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutPlace(int id, [FromBody] PlaceRequest request)
+        {
+            var success = await _placeService.UpdatePlaceAsync(id, request);
+            if (!success) return NotFound();
             return NoContent();
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePlace(int id)
         {
-            var place = await _context.Places.FindAsync(id);
-            if (place == null) return NotFound();
-
-            _context.Places.Remove(place);
-            await _context.SaveChangesAsync();
+            var success = await _placeService.DeletePlaceAsync(id);
+            if (!success) return NotFound();
             return NoContent();
         }
 
         // Upload Images Endpoint
+        [Authorize(Roles = "Admin")]
         [HttpPost("{id}/Images")]
         public async Task<IActionResult> UploadImage(int id, IFormFile file)
         {
-            var place = await _context.Places.FindAsync(id);
-            if (place == null) return NotFound(new { message = "Place not found" });
-
             if (file == null || file.Length == 0) return BadRequest(new { message = "No file uploaded" });
 
-            var uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "images", "places");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+            var image = await _placeService.UploadImageAsync(id, file);
+            if (image == null) return NotFound(new { message = "Place not found" });
 
-            var fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
-            var filePath = Path.Combine(uploadsFolder, fileName);
+            return Ok(image);
+        }
 
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var imageUrl = $"http://localhost:5088/images/places/{fileName}";
-            var placeImage = new PlaceImage { PlaceId = id, ImageUrl = imageUrl };
-            _context.PlaceImages.Add(placeImage);
-            await _context.SaveChangesAsync();
-
-            return Ok(placeImage);
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("{id}/Images/{imageId}")]
+        public async Task<IActionResult> DeleteImage(int id, int imageId)
+        {
+            var success = await _placeImageService.DeletePlaceImageAsync(imageId);
+            if (!success) return NotFound();
+            return NoContent();
         }
     }
 }

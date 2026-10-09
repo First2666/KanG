@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace KanG.Models
 {
-    public class TripPlan // เนเธเธเธเธฒเธฃเน€เธ”เธดเธเธ—เธฒเธเธ—เธตเนเธเธนเนเนเธเนเธชเธฃเนเธฒเธ (เธกเธต BudgetAmount + MemberCount)
+    public class TripPlan 
     {
         public int Id { get; set; } 
         public int UserId { get; set; } 
@@ -15,10 +15,9 @@ namespace KanG.Models
         public DateTime StartDate { get; set; } 
         public DateTime EndDate { get; set; } 
 
-        public int MemberCount { get; set; } = 1; // เธเธณเธเธงเธเธเธนเนเธฃเนเธงเธกเน€เธ”เธดเธเธ—เธฒเธ
-
+        public int MemberCount { get; set; } = 1; 
        
-        public decimal? BudgetAmount { get; set; } // เธเธเธเธฃเธฐเธกเธฒเธ“เธฃเธงเธกเธ—เธตเนเธ•เธฑเนเธเนเธงเน
+        public decimal? BudgetAmount { get; set; } 
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow; 
 

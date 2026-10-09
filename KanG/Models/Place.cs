@@ -7,7 +7,7 @@ namespace KanG.Models
     [JsonDerivedType(typeof(Attraction), typeDiscriminator: "attraction")]
     [JsonDerivedType(typeof(Restaurant), typeDiscriminator: "restaurant")]
     [JsonDerivedType(typeof(Accommodation), typeDiscriminator: "accommodation")]
-    public abstract class Place  // สถานที่ (ข้อมูลหลัก)
+    public abstract class Place  
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -21,7 +21,7 @@ namespace KanG.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation Properties ส่วนกลาง
+        //ส่วนกลาง
         public ICollection<PlaceImage> Images { get; set; } = new List<PlaceImage>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
